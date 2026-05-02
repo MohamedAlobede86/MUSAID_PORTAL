@@ -1,0 +1,259 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<style>
+.keyword-box {
+    background: #f8f9fa;
+    border: 1px dashed #0d6efd;
+    font-size: 0.85rem;
+}
+
+.progress-bar {
+    transition: width 0.3s ease;
+    font-weight: bold;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    transition: 0.3s;
+}
+</style>
+
+<!-- ✅ التنبيه الذكي -->
+{% if ai_alert %}
+<div class="alert alert-warning text-center fw-bold mb-4">
+    {{ ai_alert }}
+</div>
+{% endif %}
+
+<!-- ✅ إحصائية شخصية للأستاذ -->
+<div class="card shadow-sm border-0 rounded-4 mb-4">
+  <div class="card-body">
+    <h6 class="fw-bold text-primary">📊 إحصائياتك هذا الفصل</h6>
+    <p class="mb-1">عدد المذكرات: <strong>{{ my_count }}</strong></p>
+    <p class="mb-1">أكثر مادة رفعت لها: <strong>{{ top_subject if top_subject else "لا يوجد" }}</strong></p>
+    <p class="mb-0">نسبة مشاركتك: <strong>{{ participation }}%</strong> من إجمالي المذكرات</p>
+  </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 rounded-4 p-4 text-center mb-4 sticky-top" style="top: 20px;">
+            <img src="https://ui-avatars.com/api/?name={{ name }}&background=003366&color=fff&size=128" class="rounded-circle mb-3">
+            <h4 class="fw-bold">{{ name }}</h4>
+            <p class="text-muted">عضو هيئة تدريس</p>
+            <hr>
+            <small class="text-muted">يمكنك رفع المذكرات وإدارتها بسهولة</small>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+
+        <!-- رفع -->
+        <div class="card shadow-sm border-0 rounded-4 mb-4">
+            <div class="card-header bg-white">
+                <h5 class="fw-bold text-primary">رفع مذكرة جديدة</h5>
+            </div>
+
+            <div class="card-body">
+
+                <form id="uploadForm" method="POST" enctype="multipart/form-data">
+
+                    <div class="row mb-3">
+                        <div class="col">
+                            <select class="form-select" id="dept_select" name="dept_id" required>
+                                <option value="">القسم</option>
+                                {% for dept in depts %}
+                                <option value="{{ dept.id }}">{{ dept.dept_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col">
+                            <select class="form-select" id="semester_select" name="semester" required>
+                                <option value="">الفصل</option>
+                            </select>
+                        </div>
+
+                        <div class="col">
+                            <select class="form-select" id="subject_select" name="subject_id" required>
+                                <option value="">المادة</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <input type="text" name="title" class="form-control mb-3" placeholder="عنوان المذكرة" required>
+
+                    <textarea name="notes" class="form-control mb-2" rows="2" placeholder="ملاحظات"></textarea>
+
+                    <!-- كلمات مفتاحية -->
+                    <input type="text" id="keywordsBox" class="form-control keyword-box mb-3" readonly placeholder="كلمات مفتاحية تلقائية...">
+
+                    <input type="file" name="files[]" class="form-control mb-3" multiple required>
+
+                    <!-- شريط التقدم -->
+                    <div class="progress mb-3 d-none" id="progressWrapper">
+                        <div id="progressBar" class="progress-bar bg-success" style="width:0%">0%</div>
+                    </div>
+
+                    <button class="btn btn-primary w-100" id="uploadBtn">رفع</button>
+
+                </form>
+
+            </div>
+        </div>
+
+        <!-- أرشيف -->
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body">
+                <table id="archiveTable" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>المادة</th>
+                            <th>العنوان</th>
+                            <th>الفصل</th>
+                            <th>إجراءات</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for item in my_handouts %}
+                        <tr>
+                            <td>{{ item.subject_name }}</td>
+                            <td>{{ item.title }}</td>
+                            <td>{{ item.semester }}</td>
+                            <td>
+                                <a href="{{ url_for('uploaded_file', filename=item.file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">عرض</a>
+                                <button onclick="confirmDelete('{{ item.id }}')" class="btn btn-sm btn-outline-danger">حذف</button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+
+// DataTable
+$(document).ready(function() {
+    $('#archiveTable').DataTable({
+        language: { url: "https://cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json" }
+    });
+});
+
+// حذف
+function confirmDelete(id){
+    Swal.fire({
+        title:'تأكيد الحذف',
+        text:'لا يمكن التراجع!',
+        icon:'warning',
+        showCancelButton:true
+    }).then(r=>{
+        if(r.isConfirmed){
+            window.location="/delete_handout/"+id;
+        }
+    });
+}
+
+// dynamic select
+const deptSelect = document.getElementById('dept_select');
+const semSelect = document.getElementById('semester_select');
+const subSelect = document.getElementById('subject_select');
+
+deptSelect.onchange = ()=>{
+    fetch(`/get_semesters/${deptSelect.value}`)
+    .then(r=>r.json())
+    .then(d=>{
+        semSelect.innerHTML='<option>الفصل</option>';
+        d.semesters.forEach(s=>{
+            semSelect.innerHTML+=`<option value="${s.id}">فصل ${s.number}</option>`;
+        });
+    });
+};
+
+semSelect.onchange = ()=>{
+    fetch(`/get_subjects/${deptSelect.value}/${semSelect.value}`)
+    .then(r=>r.json())
+    .then(d=>{
+        subSelect.innerHTML='<option>المادة</option>';
+        d.subjects.forEach(s=>{
+            subSelect.innerHTML+=`<option value="${s.id}">${s.name}</option>`;
+        });
+    });
+};
+
+// رفع + شريط تقدم
+document.getElementById('uploadForm').onsubmit = function(e){
+    e.preventDefault();
+
+    const xhr = new XMLHttpRequest();
+    const formData = new FormData(this);
+
+    const bar = document.getElementById('progressBar');
+    const wrap = document.getElementById('progressWrapper');
+
+    wrap.classList.remove('d-none');
+
+    xhr.upload.onprogress = e=>{
+        if(e.lengthComputable){
+            let p = Math.round((e.loaded/e.total)*100);
+            bar.style.width = p+'%';
+            bar.textContent = p+'%';
+        }
+    };
+
+    xhr.onload = ()=>{
+        if(xhr.status==200){
+            Swal.fire('تم بنجاح','','success').then(()=>location.reload());
+        }else{
+            Swal.fire('خطأ','','error');
+        }
+    };
+
+    xhr.open('POST','/upload');
+    xhr.send(formData);
+};
+
+// ✅ الذكاء (مصَحّح بالكامل)
+const titleInput = document.querySelector('input[name="title"]');
+const notesInput = document.querySelector('textarea[name="notes"]');
+const keywordsBox = document.getElementById('keywordsBox');
+
+function extractKeywords(text){
+    if(!text) return "";
+
+    const stopWords = ["من","في","على","الى","عن","مع","the","and","for"];
+
+    text = text.replace(/[^\w\s\u0600-\u06FF]/g,'');
+
+    let words = text.split(/\s+/);
+
+    words = words.filter(w=> w.length>3 && !stopWords.includes(w.toLowerCase()));
+
+    let freq = {};
+    words.forEach(w=> freq[w]=(freq[w]||0)+1);
+
+    return Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,5).join(' | ');
+}
+
+// 🔥 الإصلاح المهم
+function updateKeywords(){
+    let combined = (titleInput.value + " " + notesInput.value).trim();
+    keywordsBox.value = extractKeywords(combined);
+}
+
+titleInput.addEventListener('input', updateKeywords);
+notesInput.addEventListener('input', updateKeywords);
+updateKeywords(); // Initial call
+</script>
+{% endblock %}

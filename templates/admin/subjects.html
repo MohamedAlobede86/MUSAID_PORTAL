@@ -1,0 +1,153 @@
+{% extends "admin/admin_layout.html" %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold"><i class="bi bi-book-half text-primary me-2"></i> إدارة المواد الدراسية</h3>
+        <button class="btn btn-success rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#addSubjectModal">
+            <i class="bi bi-plus-circle me-1"></i> إضافة مادة جديدة
+        </button>
+    </div>
+
+    <!-- صندوق الملخص الذكي -->
+    <div class="card shadow-sm rounded-4 p-4 mb-4 bg-light">
+        <h5 class="fw-bold mb-3"><i class="bi bi-stars text-success me-2"></i> ملخص ذكي</h5>
+        <p class="text-muted mb-2">
+            لديك حالياً <strong>{{ subjects|length }}</strong> مادة مسجلة في النظام.
+            {% if subjects|length == 0 %}
+                لم يتم إضافة أي مادة بعد، ننصح ببدء إدخال المواد الأساسية للفصل الدراسي.
+            {% else %}
+                {% set comp_count = subjects|selectattr("dept_id","equalto",1)|list|length %}
+                {% set acc_count = subjects|selectattr("dept_id","equalto",2)|list|length %}
+                {% if comp_count > acc_count %}
+                    قسم <strong>تقنيات الحاسوب</strong> يحتوي على أكبر عدد من المواد، مما يعكس نشاطاً جيداً.
+                {% elif acc_count > comp_count %}
+                    قسم <strong>العلوم الإدارية</strong> يحتوي على أكبر عدد من المواد، ويستحق الإشادة على زيادة المحتوى.
+                {% else %}
+                    الأقسام متوازنة في عدد المواد، وهذا مؤشر إيجابي على توزيع الجهد.
+                {% endif %}
+            {% endif %}
+        </p>
+        <p class="text-muted mb-0">
+            {% if subjects|length > 0 %}
+                {% for subject in subjects %}
+                    {% if loop.first and subject.semester == 1 %}
+                        لاحظ أن مادة <strong>{{ subject.subject_name }}</strong> في الفصل الأول لم يتم رفع أي مذكرة لها بعد، ننصح بمتابعة ذلك.
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="card admin-card p-4 border-0 shadow-sm rounded-4 overflow-hidden">
+        <!-- إضافة table-responsive لضمان ظهور الأعمدة كاملة على الهاتف -->
+        <div class="table-responsive">
+            <table id="subjectsTable" class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-secondary small">
+                    <tr>
+                        <th class="ps-4">اسم المادة</th>
+                        <th>القسم العلمي</th>
+                        <th>الفصل</th>
+                        <th class="text-center">الإجراءات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for subject in subjects %}
+                    <tr class="subject-row">
+                        <td class="ps-4 fw-bold text-dark">{{ subject.subject_name }}</td>
+                        <td>
+                            <span class="badge {% if subject.dept_id == 1 %}bg-primary-subtle text-primary{% else %}bg-success-subtle text-success{% endif %} rounded-pill px-3">
+                                {% if subject.dept_id == 1 %}تقنيات الحاسوب{% else %}محاسبة{% endif %}
+                            </span>
+                        </td>
+                        <td>F{{ subject.semester }}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm btn-action" 
+                                    onclick="confirmDelete('{{ subject.id }}', '{{ subject.subject_name }}')">
+                                <i class="bi bi-trash me-1"></i> حذف
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addSubjectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-0 bg-success text-white rounded-top-4">
+                <h5 class="fw-bold m-0 pl-3"><i class="bi bi-plus-circle me-2"></i>إضافة مادة دراسية</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="/admin/add_subject" method="POST">
+                <div class="modal-body p-4 text-end">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">اسم المادة</label>
+                        <input type="text" name="subject_name" class="form-control rounded-3 border-light-subtle" required placeholder="مثلاً: شبكات الحاسوب">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">القسم العلمي المخصص</label>
+                        <select name="dept_id" class="form-select rounded-3 border-light-subtle" required>
+                            <option value="1">قسم تقنيات الحاسوب (تقنية المعلومات)</option>
+                            <option value="2">قسم العلوم الإدارية والمالية (محاسبة)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">الفصل الدراسي</label>
+                        <select name="semester" class="form-select rounded-3 border-light-subtle" required>
+                            {% for i in range(1, 7) %}
+                            <option value="{{ i }}">الفصل الدراسي {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="submit" class="btn btn-success w-100 py-2 rounded-3 shadow-sm fw-bold">حفظ المادة في النظام</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+// دالة عرض رسالة الحذف العصرية (SweetAlert2)
+function confirmDelete(subjectId, subjectName) {
+    Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: `سيتم حذف مادة "${subjectName}" نهائياً من النظام والجدول الدراسي.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'نعم، قم بالحذف',
+        cancelButtonText: 'إلغاء الأمر',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = "/admin/delete_subject/" + subjectId;
+        }
+    });
+}
+
+// تفعيل نظام الصفحات والبحث التلقائي باللغة العربية
+$(document).ready(function() {
+    $('#subjectsTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json"
+        },
+        "pageLength": 10,
+        "ordering": false,
+        "responsive": true // تفعيل خاصية الاستجابة
+    });
+});
+</script>
+{% endblock %}

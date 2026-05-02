@@ -1,0 +1,70 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="hero-section text-center rounded-4 mb-5 p-5 bg-light shadow-sm">
+    <h1 class="display-5 fw-bold text-primary">أهلاً بكم في منصة المذكرات الرقمية</h1>
+    <p class="lead text-muted">بوابتك الأكاديمية لتحميل المذكرات، الواجبات، والمراجع الدراسية بسهولة.</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card shadow border-0 rounded-4 p-4">
+            <h3 class="fw-bold text-center mb-4 text-secondary"><i class="bi bi-search me-2"></i>البحث عن المذكرات الدراسية</h3>
+            
+            <form action="/search" method="GET">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold text-dark">القسم العلمي</label>
+                        <select class="form-select form-select-lg border-primary-subtle" name="dept" required>
+                            <option value="">اختر القسم...</option>
+                            {% for dept in depts %}
+                            <option value="{{ dept.id }}">{{ dept.dept_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark">الفصل الدراسي</label>
+                        <select class="form-select form-select-lg border-primary-subtle" name="semester" required>
+                            <option value="">اختر الفصل...</option>
+                            {% for i in range(1, 7) %}
+                            <option value="{{ i }}">الفصل الدراسي {{ i }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm fw-bold">
+                            <i class="bi bi-file-earmark-arrow-down me-1"></i> عرض المواد
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5 text-center">
+    <div class="col-md-4">
+        <div class="p-3">
+            <i class="bi bi-people fs-1 text-primary"></i>
+            <h5 class="mt-2 fw-bold">أعضاء هيئة التدريس</h5>
+            <p class="text-muted small">نخبة من الأساتذة يشاركونكم خبراتهم.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-3">
+            <i class="bi bi-journal-check fs-1 text-success"></i>
+            <h5 class="mt-2 fw-bold">محتوى متجدد</h5>
+            <p class="text-muted small">مذكرات دراسية محدثة لكل فصل دراسي.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-3">
+            <i class="bi bi-shield-lock fs-1 text-info"></i>
+            <h5 class="mt-2 fw-bold">وصول آمن</h5>
+            <p class="text-muted small">بيئة تعليمية منظمة وسهلة الاستخدام.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

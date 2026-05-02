@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow-lg border-0 rounded-4">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+                    <h2 class="fw-bold text-primary">تسجيل الدخول</h2>
+                    <p class="text-muted">خاص بأعضاء هيئة التدريس والإدارة</p>
+                </div>
+                
+                <form action="/login" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">البريد الإلكتروني</label>
+                        <input type="email" name="email" class="form-control form-control-lg" placeholder="name@musaid.edu.ly" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label">كلمة المرور</label>
+                        <input type="password" name="password" class="form-control form-control-lg" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm">دخول للمنصة</button>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <small class="text-muted">إذا واجهت مشكلة في الدخول، يرجى مراجعة مدير النظام.</small>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <a href="/" class="text-decoration-none text-secondary">← العودة للرئيسية</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

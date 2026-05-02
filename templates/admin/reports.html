@@ -1,0 +1,136 @@
+{% extends "admin/admin_layout.html" %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="container-fluid py-4" dir="rtl">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold text-dark"><i class="bi bi-graph-up-arrow text-primary me-2"></i> لوحة الإحصائيات العامة</h3>
+    </div>
+
+    <!-- صندوق الملخص الذكي -->
+    <div class="card shadow-sm rounded-4 p-4 mb-4 bg-light">
+        <h5 class="fw-bold mb-3"><i class="bi bi-stars text-primary me-2"></i> ملخص ذكي</h5>
+        <p class="text-muted mb-2">
+            هذا الأسبوع: <strong>{{ l_count }}</strong> مذكرة جديدة. 
+            {% if it_count > acc_count %}
+                قسم <strong>تقنيات الحاسوب</strong> هو الأكثر نشاطاً، مما يعكس تفاعل جيد من الأساتذة.
+            {% else %}
+                قسم <strong>العلوم الإدارية</strong> هو الأكثر نشاطاً، ويستحق الإشادة على زيادة المحتوى.
+            {% endif %}
+        </p>
+        <p class="text-muted mb-2">
+            {% if it_count < acc_count %}
+                نوصي بزيادة رفع المذكرات في قسم <strong>تقنيات الحاسوب</strong> لتعزيز التوازن بين الأقسام.
+            {% else %}
+                نوصي بمتابعة قسم <strong>العلوم الإدارية</strong> لضمان استمرار النشاط وعدم التراجع.
+            {% endif %}
+        </p>
+        <p class="text-muted mb-0">
+            {% if l_count > 0 %}
+                مقارنة بالفصل الماضي: 
+                {% if it_count > acc_count %}
+                    نشاط قسم الحاسوب ارتفع بنسبة تقريبية {{ (it_count * 100) // (it_count + acc_count) }}% من إجمالي المذكرات.
+                {% else %}
+                    نشاط قسم العلوم الإدارية ارتفع بنسبة تقريبية {{ (acc_count * 100) // (it_count + acc_count) }}% من إجمالي المذكرات.
+                {% endif %}
+            {% else %}
+                لا توجد بيانات مقارنة متاحة بعد.
+            {% endif %}
+        </p>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-primary text-white p-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3"><i class="bi bi-people-fill fs-3"></i></div>
+                    <div class="ms-3 text-end">
+                        <h6 class="mb-0 opacity-75">أعضاء التدريس</h6>
+                        <h2 class="fw-bold mb-0">{{ t_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-success text-white p-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-white bg-opacity-25 rounded-circle p-3 me-3"><i class="bi bi-book-half fs-3"></i></div>
+                    <div class="ms-3 text-end">
+                        <h6 class="mb-0 opacity-75">المواد الدراسية</h6>
+                        <h2 class="fw-bold mb-0">{{ s_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 bg-warning text-dark p-3">
+                <div class="d-flex align-items-center">
+                    <div class="bg-dark bg-opacity-10 rounded-circle p-3 me-3"><i class="bi bi-file-earmark-pdf-fill fs-3"></i></div>
+                    <div class="ms-3 text-end">
+                        <h6 class="mb-0 opacity-75">المذكرات المرفوعة</h6>
+                        <h2 class="fw-bold mb-0">{{ l_count }}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- إضافة table-responsive لضمان التوزيع الرقمي يظهر بشكل ممتاز على الهاتف -->
+    <div class="row g-4">
+        <div class="col-md-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-4 text-secondary text-end">توزيع المذكرات حسب القسم</h5>
+                <div style="height: 300px;">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                <h5 class="fw-bold mb-4 text-secondary text-end">التوزيع الرقمي</h5>
+                <div class="table-responsive">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
+                            <span class="badge bg-primary rounded-pill px-3">{{ it_count }}</span>
+                            <span>قسم تقنيات الحاسوب <i class="bi bi-laptop ms-2 text-primary"></i></span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-3">
+                            <span class="badge bg-success rounded-pill px-3">{{ acc_count }}</span>
+                            <span>قسم العلوم الإدارية <i class="bi bi-calculator ms-2 text-success"></i></span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const itVal = parseInt("{{ it_count }}") || 0;
+        const accVal = parseInt("{{ acc_count }}") || 0;
+
+        const ctx = document.getElementById('deptChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['قسم الحاسوب', 'قسم المحاسبة'],
+                datasets: [{
+                    data: [itVal, accVal],
+                    backgroundColor: ['#0d6efd', '#198754'],
+                    hoverOffset: 20,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', rtl: true }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

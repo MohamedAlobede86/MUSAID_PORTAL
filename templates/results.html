@@ -1,0 +1,199 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .nav-link[href="/login"] { display: none !important; }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">الرئيسية</a></li>
+                    <li class="breadcrumb-item active">نتائج البحث</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold text-dark">قسم {{ dept_name }} - الفصل {{ semester }}</h2>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-primary btn-sm" id="gridViewBtn">
+                <i class="bi bi-grid-3x3-gap"></i> شبكة
+            </button>
+            <button class="btn btn-outline-primary btn-sm" id="listViewBtn">
+                <i class="bi bi-list"></i> قائمة
+            </button>
+        </div>
+        <a href="/" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-arrow-right-short fs-5"></i> العودة للبحث
+        </a>
+    </div>
+
+    <!-- 📊 صندوق الإحصائيات -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="p-3 border rounded-3 shadow-sm" 
+                 style="background: linear-gradient(90deg,#f8f9fa,#e7f1ff);">
+                <h6 class="fw-bold mb-2 text-primary">
+                    <i class="bi bi-bar-chart-fill me-2"></i> إحصائيات سريعة
+                </h6>
+                <ul class="list-unstyled small text-muted mb-0">
+                    <li><i class="bi bi-collection me-2 text-secondary"></i> عدد المذكرات: {{ results|length }}</li>
+                    <li><i class="bi bi-bookmark-star me-2 text-secondary"></i> أكثر مادة نشاطاً: {{ top_subject if top_subject else 'غير متاح' }}</li>
+                    <li><i class="bi bi-person-lines-fill me-2 text-secondary"></i> أكثر أستاذ رفع مذكرات: {{ top_teacher if top_teacher else 'غير متاح' }}</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mx-auto">
+            <div class="input-group shadow-sm rounded-pill overflow-hidden border">
+                <span class="input-group-text bg-white border-0 ps-4">
+                    <i class="bi bi-search text-primary"></i>
+                </span>
+                <input type="text" id="liveSearch" class="form-control border-0 py-3 ps-2" 
+                       placeholder="ابحث باسم المادة أو المحاضرة أو الأستاذ...">
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="resultsGrid">
+        {% for item in results %}
+        <div class="col-md-6 col-lg-4 mb-4 result-card" 
+             data-search="{{ item.title }} {{ item.subject_name }} {{ item.teacher_name }}">
+            <div class="card h-100 shadow border-0 rounded-4 hover-shadow">
+                
+                <!-- رأس البطاقة -->
+                <div class="card-header bg-gradient rounded-top-4 p-3 d-flex align-items-center" 
+                     style="background: linear-gradient(90deg,#fdfdfd,#f1f1f1);">
+                    {% if '.ppt' in item.file_path|lower %}
+                        <i class="bi bi-file-earmark-ppt-fill fs-3 text-warning me-2"></i>
+                    {% elif '.doc' in item.file_path|lower %}
+                        <i class="bi bi-file-earmark-word-fill fs-3 text-info me-2"></i>
+                    {% else %}
+                        <i class="bi bi-file-earmark-pdf-fill fs-3 text-danger me-2"></i>
+                    {% endif %}
+                    <h5 class="fw-bold mb-0 text-truncate flex-grow-1 text-dark" title="{{ item.title }}">
+                        {{ item.title }}
+                    </h5>
+                </div>
+
+                <!-- جسم البطاقة -->
+                <div class="card-body p-4 d-flex flex-column">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small mb-3">
+                        {{ item.subject_name }}
+                    </span>
+
+                    <!-- الملخص -->
+                    <div class="ai-summary-box p-3 mb-3 shadow-sm border rounded-3 bg-light">
+                        {% if item.flash_summary %}
+                            <small class="flash-insight text-muted">
+                                <i class="bi bi-stars"></i> ملخص سريع:
+                            </small>
+                            <div class="deep-summary mt-1">
+                                {{ item.flash_summary }}
+                                <button class="btn btn-sm btn-link p-0 mt-1" 
+                                        onclick="this.previousElementSibling.style.maxHeight='none'; this.style.display='none'">
+                                    عرض المزيد
+                                </button>
+                            </div>
+                        {% else %}
+                            <div class="text-muted small">
+                                لا يوجد ملخص متاح لهذه المذكرة
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- بيانات الأستاذ -->
+                    <div class="mb-3 flex-grow-1">
+                        <div class="d-flex align-items-center text-muted small mb-2">
+                            <i class="bi bi-person-badge me-2"></i> الأستاذ: {{ item.teacher_name }}
+                        </div>
+                        {% if item.notes %}
+                        <div class="bg-light p-2 rounded-3 small border-start border-primary border-4">
+                            <strong>ملاحظة الأستاذ:</strong> {{ item.notes }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- الأزرار -->
+                    <div class="d-flex justify-content-between mt-auto">
+                        <a href="{{ url_for('uploaded_file', filename=item.file_path) }}" 
+                           class="btn btn-outline-primary rounded-pill px-3" target="_blank">
+                            <i class="bi bi-eye"></i> معاينة
+                        </a>
+                        
+                        <a href="{{ url_for('uploaded_file', filename=item.file_path) }}" 
+                           download="{{ item.file_path }}" 
+                           class="btn btn-primary rounded-pill px-3">
+                            <i class="bi bi-cloud-download"></i> تحميل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <div class="mb-4">
+                <i class="bi bi-file-earmark-x text-muted display-1 opacity-25"></i>
+            </div>
+            <h3 class="fw-bold">لا توجد مذكرات حالياً</h3>
+            <p class="text-muted">لم يتم رفع محاضرات لهذا القسم والفصل حتى الآن. تابعنا باستمرار.</p>
+            <a href="/" class="btn btn-primary px-5 rounded-pill">جرب بحثاً آخر</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // البحث المباشر
+    document.getElementById('liveSearch').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase();
+        const cards = document.querySelectorAll('.result-card');
+        let found = 0;
+
+        cards.forEach(card => {
+            const content = card.getAttribute('data-search').toLowerCase();
+            if (content.includes(term)) {
+                card.style.display = "block";
+                found++;
+            } else {
+                card.style.display = "none";
+            }
+        });
+
+        const grid = document.getElementById('resultsGrid');
+        let noResultsMsg = document.getElementById('noResultsMsg');
+        
+        if (found === 0 && term !== "") {
+            if (!noResultsMsg) {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.id = 'noResultsMsg';
+                noResultsMsg.className = 'col-12 text-center py-4 text-muted';
+                noResultsMsg.innerHTML = '<h5>عذراً، لم نجد ما يطابق بحثك..</h5>';
+                grid.appendChild(noResultsMsg);
+            }
+        } else if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+    });
+
+    // تبديل العرض شبكة/قائمة
+    const gridBtn = document.getElementById('gridViewBtn');
+    const listBtn = document.getElementById('listViewBtn');
+    const resultsGrid = document.getElementById('resultsGrid');
+
+    gridBtn.addEventListener('click', () => {
+        resultsGrid.classList.remove('list-view');
+        gridBtn.classList.add('active');
+        listBtn.classList.remove('active');
+    });
+
+    listBtn.addEventListener('click', () => {
+        resultsGrid.classList.add('list-view');
+        listBtn.classList.add('active');
+        gridBtn.classList.remove('active');
+    });
+</script>
+{% endblock %}
