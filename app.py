@@ -150,22 +150,27 @@ def search():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
-        password = request.form['password']
+        email = request.form['email'].strip()
+        password = request.form['password'].strip()
         
         conn = get_db_connection()
-        user = conn.execute('SELECT * FROM teachers WHERE email = ? AND password = ?', 
-                            (email, password)).fetchone()
+        user = conn.execute(
+            'SELECT * FROM teachers WHERE email = ? AND password = ?', 
+            (email, password)
+        ).fetchone()
         conn.close()
 
         if user:
+            # حفظ بيانات المستخدم في الجلسة
             session['user_id'] = user['id']
             session['user_name'] = user['full_name']
-            session['role'] = 'admin' if email == 'admin@musaid.edu.ly' else 'teacher'
-            
-            if session['role'] == 'admin':
+
+            # تحديد الدور حسب البريد أو العمود role في قاعدة البيانات
+            if email == 'admin@musaid.edu.ly':
+                session['role'] = 'admin'
                 return redirect(url_for('admin_dashboard'))
             else:
+                session['role'] = 'teacher'
                 return redirect(url_for('teacher_dashboard'))
         else:
             flash('خطأ في البريد الإلكتروني أو كلمة المرور')
