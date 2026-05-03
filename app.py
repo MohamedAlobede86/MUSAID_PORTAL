@@ -29,41 +29,28 @@ if not os.path.exists(UPLOAD_FOLDER):
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
     if database_url:
-        # تصحيح رابط PostgreSQL للسحاب
         if database_url.startswith("postgresql://"):
             database_url = database_url.replace("postgresql://", "postgres://", 1)
         
+        # الاتصال الخام
         raw_conn = psycopg2.connect(database_url, sslmode='require')
         
-        # --- هذا الجزء هو "المترجم" الذي سيمنع الفشل ---
         class SQLiteCompatibleConnection:
             def __init__(self, conn):
                 self.conn = conn
             
             def execute(self, sql, params=None):
-                # فتح الكرسر تلقائياً كما يطلب PostgreSQL
+                # استخدام 'with' يضمن إغلاق الكرسر فور انتهاء المهمة
                 cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                # تحويل علامة ? إلى %s ليعمل الكود القديم دون تعديل
                 sql = sql.replace('?', '%s')
                 cur.execute(sql, params)
-                return cur
+                return cur # سيتم إغلاقه عند طلب fetchall
             
             def commit(self): self.conn.commit()
             def close(self): self.conn.close()
-            def fetchone(self): return self.conn.cursor().fetchone() # لدعم العمليات المباشرة
-        
+            def fetchone(self): return self.conn.cursor().fetchone()
+            
         return SQLiteCompatibleConnection(raw_conn)
-    else:
-        # للعمل محلياً في طبرق على SQLite
-        conn = sqlite3.connect(DATABASE)
-        conn.row_factory = sqlite3.Row
-        return conn
-    database_url = os.environ.get('DATABASE_URL')
-    if database_url:
-        if database_url.startswith("postgresql://"):
-            database_url = database_url.replace("postgresql://", "postgres://", 1)
-        conn = psycopg2.connect(database_url, sslmode='require')
-        return conn
     else:
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
