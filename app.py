@@ -102,28 +102,18 @@ import sqlite3
 import psycopg2
 import psycopg2.extras # استدعاء المكتبة كاملة يحل مشكلة التنبيه في VS Code
 
-def get_db_connection():
-    database_url = os.environ.get('DATABASE_URL')
-    
-    if database_url:
-        try:
-            # الاتصال بـ PostgreSQL السحابية
-            conn = psycopg2.connect(database_url, sslmode='require')
-            # نستخدم هذه الطريقة لتجنب مشاكل الاستدعاء في بعض النسخ
-            conn.cursor_factory = psycopg2.extras.RealDictCursor 
-            return conn
-        except Exception as e:
-            print(f"خطأ في الاتصال بالسحابي: {e}")
-            # العودة للقاعدة المحلية في حال فشل السحابي
-            conn = sqlite3.connect('musaid_ist.db')
-            conn.row_factory = sqlite3.Row
-            return conn
-    else:
-        # التشغيل المحلي في طبرق
-        conn = sqlite3.connect('musaid_ist.db')
-        conn.row_factory = sqlite3.Row
-        return conn
+import psycopg2.extras # تأكد من وجود هذا السطر في الأعلى
 
+def get_db_connection():
+    url = os.environ.get('DATABASE_URL')
+    # تصحيح بداية الرابط ليتوافق مع psycopg2
+    if url and url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgres://", 1)
+        
+    conn = psycopg2.connect(url, sslmode='require')
+    # هذا السطر هو "السر" لكي يعمل الكود القديم مع قاعدة البيانات الجديدة
+    conn.cursor_factory = psycopg2.extras.RealDictCursor 
+    return conn
 # --- التعديل الجوهري: حل مشكلة المعاينة والتحميل (PDF) ---
 @app.route('/download/<filename>')
 def uploaded_file(filename):
@@ -569,6 +559,8 @@ with app.app_context():
     ''')
     conn.commit()
     conn.close()
-
-if __name__ == '__main__':
-    app.run(debug=True)
+    if __name__ == "__main__":
+    # تأكد أن السطور التالية تبدأ بـ 4 مسافات (وليس Tab)
+        port = int(os.environ.get("PORT", 5000))
+        # تشغيل التطبيق مع تعطيل الديباج في السيرفر
+        app.run(host='0.0.0.0', port=port, debug=False)
