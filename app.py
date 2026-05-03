@@ -26,33 +26,36 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
+import psycopg2.extras # تأكد من وجود هذا السطر في أعلى الملف
+
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
     if database_url:
+        # تصحيح رابط PostgreSQL
         if database_url.startswith("postgresql://"):
             database_url = database_url.replace("postgresql://", "postgres://", 1)
         
-        # الاتصال الخام
-        raw_conn = psycopg2.connect(database_url, sslmode='require')
+        # إنشاء الاتصال مع خاصية التثبيت التلقائي (Autocommit) لتقليل الضغط
+        conn = psycopg2.connect(database_url, sslmode='require')
+        conn.autocommit = True
         
-        class SQLiteCompatibleConnection:
-            def __init__(self, conn):
-                self.conn = conn
-            
+        # فئة محاكاة لـ SQLite لضمان عمل كودك القديم (266 أو 576 سطر)
+        class DBWrapper:
+            def __init__(self, connection):
+                self.connection = connection
             def execute(self, sql, params=None):
-                # استخدام 'with' يضمن إغلاق الكرسر فور انتهاء المهمة
-                cur = self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                # تحويل العلامات تلقائياً من ? إلى %s
                 sql = sql.replace('?', '%s')
-                cur.execute(sql, params)
-                return cur # سيتم إغلاقه عند طلب fetchall
+                cursor = self.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                cursor.execute(sql, params)
+                return cursor
+            def commit(self): pass # Autocommit مفعل
+            def close(self): self.connection.close()
             
-            def commit(self): self.conn.commit()
-            def close(self): self.conn.close()
-            def fetchone(self): return self.conn.cursor().fetchone()
-            
-        return SQLiteCompatibleConnection(raw_conn)
+        return DBWrapper(conn)
     else:
-        conn = sqlite3.connect(DATABASE)
+        # الاتصال المحلي في طبرق
+        conn = sqlite3.connect('musaid_ist.db')
         conn.row_factory = sqlite3.Row
         return conn
 
