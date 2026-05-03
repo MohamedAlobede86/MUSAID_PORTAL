@@ -8,3 +8,4 @@ python-pptx==0.6.21
 Pillow
 PyMuPDF==1.24.0
 setuptools==65.5.0
+psycopg2-binary
