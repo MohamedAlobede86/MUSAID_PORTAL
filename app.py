@@ -31,35 +31,28 @@ import psycopg2.extras # تأكد من وجود هذا السطر في أعلى 
 def get_db_connection():
     database_url = os.environ.get('DATABASE_URL')
     if database_url:
+        # تصحيح الرابط للسحاب
         if database_url.startswith("postgresql://"):
             database_url = database_url.replace("postgresql://", "postgres://", 1)
         
+        # اتصال مباشر وبسيط
         conn = psycopg2.connect(database_url, sslmode='require')
-        conn.autocommit = True
         
-        class DBWrapper:
-            def __init__(self, connection):
-                self.connection = connection
-            
-            # أضفنا هذه الدالة لحل خطأ السطر 119
-            def cursor(self, cursor_factory=None):
-                return self.connection.cursor(cursor_factory=cursor_factory)
-                
-            def execute(self, sql, params=None):
-                sql = sql.replace('?', '%s')
-                cursor = self.connection.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-                cursor.execute(sql, params)
-                return cursor
-
-            def commit(self): self.connection.commit()
-            def close(self): self.connection.close()
-            
-        return DBWrapper(conn)
+        # لكي يعمل الكود القديم، نحتاج أن نجعل الاتصال يتصرف مثل SQLite
+        # سنضيف الدالة execute مباشرة للاتصال الخام
+        def execute_wrapper(sql, params=None):
+            sql = sql.replace('?', '%s')
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(sql, params)
+            return cur
+        
+        conn.execute = execute_wrapper
+        return conn
     else:
+        # للعمل المحلي في طبرق
         conn = sqlite3.connect('musaid_ist.db')
         conn.row_factory = sqlite3.Row
         return conn
-
 def clean_text(text):
     import re
     text = re.sub(r'[^\u0600-\u06FFa-zA-Z0-9\s.,!?؟]', '', text)
