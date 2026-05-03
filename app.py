@@ -98,21 +98,28 @@ if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
 import os
-import psycopg2
 import sqlite3
-from psycopg2.extras import RealDictCursor
+import psycopg2
+import psycopg2.extras # استدعاء المكتبة كاملة يحل مشكلة التنبيه في VS Code
 
 def get_db_connection():
-    # التحقق هل نحن على سيرفر Render أم على الجهاز المحلي
-    # Render سيقرأ هذا الرابط من "Environment Variables" التي سنضيفها بعد قليل
     database_url = os.environ.get('DATABASE_URL')
     
     if database_url:
-        # الاتصال بـ PostgreSQL (السيرفر)
-        conn = psycopg2.connect(database_url, sslmode='require')
-        return conn
+        try:
+            # الاتصال بـ PostgreSQL السحابية
+            conn = psycopg2.connect(database_url, sslmode='require')
+            # نستخدم هذه الطريقة لتجنب مشاكل الاستدعاء في بعض النسخ
+            conn.cursor_factory = psycopg2.extras.RealDictCursor 
+            return conn
+        except Exception as e:
+            print(f"خطأ في الاتصال بالسحابي: {e}")
+            # العودة للقاعدة المحلية في حال فشل السحابي
+            conn = sqlite3.connect('musaid_ist.db')
+            conn.row_factory = sqlite3.Row
+            return conn
     else:
-        # الاتصال بـ SQLite (جهازك الشخصي في طبرق)
+        # التشغيل المحلي في طبرق
         conn = sqlite3.connect('musaid_ist.db')
         conn.row_factory = sqlite3.Row
         return conn
